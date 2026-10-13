@@ -1,0 +1,27 @@
+{
+  "defaults": {
+    "GARMIN_NEWEST_NUM": 0,
+    "GARMIN_LOGIN_MODE": "browser",
+    "GARMIN_BROWSER_TIMEOUT_SECONDS": 180,
+    "SYNC_UPLOAD_WORKERS": 4,
+    "SYNC_DOWNLOAD_WORKERS": 4
+  },
+  "accounts": [
+    {
+      "id": "account_a",
+      "enabled": true,
+      "direction": "garmin_to_coros",
+      "garmin": {"email": "", "password": "", "token_salt": "", "domain": "COM"},
+      "coros": {"email": "", "password": ""},
+      "options": {}
+    },
+    {
+      "id": "account_b",
+      "enabled": false,
+      "direction": "garmin_to_coros",
+      "garmin": {"email": "", "password": "", "token_salt": "", "domain": "COM"},
+      "coros": {"email": "", "password": ""},
+      "options": {}
+    }
+  ]
+}
