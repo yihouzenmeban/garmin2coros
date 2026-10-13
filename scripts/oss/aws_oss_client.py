@@ -4,7 +4,6 @@ from boto3.s3.transfer import TransferConfig
 from botocore.config import Config
 
 
-from oss.sts_token_error import StsTokenError
 from oss.coros_sts_client import fetch_sts_credentials
 from utils.http_client_utils import build_http_client
 

@@ -1,6 +1,6 @@
 import argparse
 import asyncio
-from collections.abc import Callable, Iterable, Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from dataclasses import replace
 from datetime import datetime
@@ -106,14 +106,6 @@ def worker_output(
         if progress_active:
             output.write("\n")
             output.flush()
-
-
-def forward_worker_output(
-    lines: Iterable[str], account_id: str, env: dict[str, str], stream: TextIO | None = None,
-) -> None:
-    with worker_output(account_id, env, stream) as forward:
-        for line in lines:
-            forward(line)
 
 
 async def run_worker(

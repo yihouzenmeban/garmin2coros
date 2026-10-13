@@ -430,7 +430,9 @@ class SyncAccountsTest(unittest.TestCase):
     def test_terminal_progress_updates_one_line_and_preserves_group_prefix(self):
         output = TerminalOutput()
         lines = ["同步进度：0/2\n", "同步进度：1/2\n", "同步进度：2/2\n", "同步结果：成功 2 条，失败 0 条\n"]
-        sync_accounts.forward_worker_output(lines, "account_b", {}, stream=output)
+        with sync_accounts.worker_output("account_b", {}, stream=output) as forward:
+            for line in lines:
+                forward(line)
         self.assertEqual(output.getvalue().count("\r"), 3)
         self.assertEqual(output.getvalue().count("\n"), 2)
         self.assertIn("[account_b] 同步进度：2/2", output.getvalue())
@@ -438,17 +440,18 @@ class SyncAccountsTest(unittest.TestCase):
     def test_non_terminal_progress_is_plain_text_and_always_redacted(self):
         output = io.StringIO()
         lines = ["同步进度：1/2 password=synthetic-private-value\n", "同步结果：成功 1 条\n"]
-        sync_accounts.forward_worker_output(lines, "account_a", {}, stream=output)
+        with sync_accounts.worker_output("account_a", {}, stream=output) as forward:
+            for line in lines:
+                forward(line)
         self.assertNotIn("\r", output.getvalue())
         self.assertNotIn("synthetic-private-value", output.getvalue())
         self.assertEqual(output.getvalue().count("\n"), 2)
 
     def test_terminal_progress_ends_before_errors_and_on_worker_exit(self):
         output = TerminalOutput()
-        sync_accounts.forward_worker_output(
-            ["同步进度：0/2\n", "上传失败：RuntimeError\n", "同步进度：2/2\n"],
-            "account_b", {}, stream=output,
-        )
+        with sync_accounts.worker_output("account_b", {}, stream=output) as forward:
+            for line in ["同步进度：0/2\n", "上传失败：RuntimeError\n", "同步进度：2/2\n"]:
+                forward(line)
         self.assertIn("0/2\n[account_b] 上传失败", output.getvalue())
         self.assertTrue(output.getvalue().endswith("\n"))
 

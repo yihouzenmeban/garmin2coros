@@ -46,7 +46,11 @@ except ModuleNotFoundError:
         write_encrypted_token,
     )
 
-from .garmin_url_dict import GARMIN_URL_DICT
+GARMIN_URL_DICT = {
+    "garmin_connect_activities": "/activitylist-service/activities/search/activities",
+    "garmin_connect_fit_download": "/download-service/files/activity",
+    "garmin_connect_upload": "/upload-service/upload",
+}
 
 garth = load_garth()
 

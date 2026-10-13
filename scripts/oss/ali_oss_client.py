@@ -5,7 +5,6 @@ import threading
 from oss2 import SizedFileAdapter, determine_part_size
 from oss2.models import PartInfo
 from oss.coros_sts_client import fetch_sts_credentials
-from oss.sts_token_error import StsTokenError
 from utils.http_client_utils import build_http_client
 
 
