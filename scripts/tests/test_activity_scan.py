@@ -1,11 +1,9 @@
-import json
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
-from scripts.garmin import garmin_sync_coros
-from garmin.garmin_client import GarminClient
+from scripts.garmin.garmin_client import GarminClient
 from scripts.utils.activity_scan import ScanState
 
 
@@ -46,16 +44,6 @@ class ActivityScanTest(unittest.TestCase):
         self.assertEqual(len(client.getAllActivities()), 6)
         client.getActivities.assert_called_once_with(start=0, limit=6)
 
-    def test_coros_scan_stops_at_known_boundary_and_does_not_fetch_extra_last_page(self):
-        client = garmin_sync_coros.CorosClient.__new__(garmin_sync_coros.CorosClient)
-        client.getActivities = Mock(side_effect=[
-            {"data": {"totalPage": 5, "dataList": [{"labelId": 11}]}},
-            {"data": {"totalPage": 5, "dataList": [{"labelId": 22}]}}])
-        self.assertEqual(len(client.getAllActivities(known_ids={11, 22})), 2)
-        self.assertEqual(client.getActivities.call_count, 2)
-        client.getActivities = Mock(return_value={"data": {"totalPage": 1, "dataList": [{"labelId": 33}]}})
-        self.assertEqual(client.getAllActivities(full_scan=True), [{"labelId": 33}])
-        client.getActivities.assert_called_once()
 
     def test_full_scan_runs_initially_then_every_seven_days_and_on_request(self):
         with tempfile.TemporaryDirectory() as directory:

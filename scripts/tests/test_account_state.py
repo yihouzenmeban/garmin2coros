@@ -30,7 +30,6 @@ class AccountStateTest(unittest.TestCase):
         changed = account_data()
         changed["garmin"]["password"] = "rotated-password"
         changed["garmin"]["token_salt"] = "rotated-salt"
-        changed["direction"] = "coros_to_garmin"
         profile = account_config.parse_config({"accounts": [changed]})[0]
         with account_state.lock_state(profile, self.root):
             self.assertTrue((state / "garmin.db").exists())
@@ -49,7 +48,7 @@ class AccountStateTest(unittest.TestCase):
                     self.fail("Must not reuse another account's state")
 
     def create_database(self, state, name="garmin.db", rows=False):
-        table = "garmin_activity" if name == "garmin.db" else "coros_activity"
+        table = "garmin_activity"
         with closing(sqlite3.connect(state / name)) as database:
             with database:
                 database.execute(f"CREATE TABLE {table} (id INTEGER PRIMARY KEY AUTOINCREMENT, activity_id INTEGER)")
@@ -64,9 +63,7 @@ class AccountStateTest(unittest.TestCase):
     def test_unused_binding_and_empty_databases_can_rebind_without_changing_files(self):
         with account_state.lock_state(self.profile, self.root) as state:
             self.create_database(state)
-            self.create_database(state, "coros.db")
-            for directory in ("garmin-fit", "coros-fit"):
-                (state / directory).mkdir()
+            (state / "garmin-fit").mkdir()
         before = {path.name: path.read_bytes() for path in state.glob("*.db")}
         changed = self.changed_profile()
         with account_state.lock_state(changed, self.root):
@@ -92,7 +89,7 @@ class AccountStateTest(unittest.TestCase):
             pass
 
     def test_token_download_unknown_artifact_or_unreadable_database_blocks_rebinding(self):
-        for artifact in ("garth_token.enc", "garmin-fit/11.zip", "coros-fit/11.fit", "unknown.json", "garmin.db"):
+        for artifact in ("garth_token.enc", "garmin-fit/11.zip", "unknown.json", "garmin.db"):
             with self.subTest(artifact=artifact), tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)
                 with account_state.lock_state(self.profile, root) as state:
@@ -225,7 +222,7 @@ class AccountStateTest(unittest.TestCase):
 
     def test_migration_of_invalid_database_does_not_leave_partial_bound_state(self):
         source = self.legacy_database()
-        (source / "coros.db").write_bytes(b"invalid sqlite database")
+        (source / "garmin.db").write_bytes(b"invalid sqlite database")
         with self.assertRaises(ValueError):
             account_state.migrate_legacy(self.profile, self.profile, self.root / "accounts", source)
         target = self.root / "accounts" / self.profile.id

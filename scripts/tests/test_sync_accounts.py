@@ -37,7 +37,6 @@ class SyncAccountsTest(unittest.TestCase):
             "(state / 'worker.json').write_text(json.dumps({\n"
             " 'pid': os.getpid(), 'args': sys.argv[1:],\n"
             " 'email': os.environ['GARMIN_EMAIL'],\n"
-            " 'direction': os.environ['SYNC_DIRECTION'],\n"
             " 'headless': os.environ.get('GARMIN_BROWSER_HEADLESS'),\n"
             " 'progress_tty': os.environ.get('SYNC_PROGRESS_TTY'),\n"
             " 'full_scan': os.environ.get('SYNC_FULL_SCAN'),\n"
@@ -60,7 +59,6 @@ class SyncAccountsTest(unittest.TestCase):
     def write_config(self, disabled=False):
         first, second = account_data(), account_data("account_b")
         first["enabled"] = not disabled
-        second["direction"] = "coros_to_garmin"
         self.config.write_text(json.dumps({"accounts": [first, second]}))
 
     def run_main(self, args):
@@ -82,7 +80,6 @@ class SyncAccountsTest(unittest.TestCase):
             self.assertTrue(Path(result["token"]).is_relative_to((self.state_root / account_id).resolve()))
             self.assertIsNone(result["legacy_file"])
             self.assertIsNone(result["inline_config"])
-        self.assertEqual(results[1]["direction"], "coros_to_garmin")
         self.assertIn("成功 1 组，失败 1 组", output)
         self.assertNotIn("synthetic-garmin-password", output)
         self.assertNotIn("@example.invalid", output)
@@ -157,7 +154,7 @@ class SyncAccountsTest(unittest.TestCase):
         groups = [account_data(f"account_{index}") for index in range(5)]
         self.config.write_text(json.dumps({"accounts": groups}))
         self.write_waiting_worker()
-        code, output = self.run_main(["--headless-only", "--jobs", "2", "--direction", "coros_to_garmin"])
+        code, output = self.run_main(["--headless-only", "--jobs", "2"])
         self.assertEqual(code, 0)
         intervals = [json.loads((self.state_root / group["id"] / "times.json").read_text())
                      for group in groups]
@@ -168,7 +165,7 @@ class SyncAccountsTest(unittest.TestCase):
             peak = max(peak, active)
         self.assertEqual(peak, 2)
         self.assertIn("成功 5 组，失败 0 组", output)
-        self.assertIn("[account_4] 开始 coros_to_garmin", output)
+        self.assertIn("[account_4] 开始 Garmin → COROS", output)
 
     def test_jobs_must_be_a_positive_integer_before_starting_workers(self):
         for value in ("0", "-1", "invalid"):
@@ -352,14 +349,14 @@ class SyncAccountsTest(unittest.TestCase):
         self.assertFalse(self.state_root.exists())
 
     def test_direct_sync_and_token_help_delegate_without_dependencies_or_credentials(self):
-        for script in ("garmin/garmin_sync_coros.py", "coros/coros_sync_garmin.py",
+        for script in ("garmin/garmin_sync_coros.py",
                        "garmin/generate_garth_token.py", "garmin/generate_garth_token_browser.py"):
             result = subprocess.run([sys.executable, str(account_config.runtime_config.PROJECT_ROOT / "scripts" / script), "--help"],
                                     env={"PATH": os.defpath}, capture_output=True, text=True, timeout=10)
             self.assertEqual(result.returncode, 0)
             self.assertIn("--account", result.stdout)
 
-    def test_worker_shell_routes_both_directions_and_browser_modes_without_real_network(self):
+    def test_worker_shell_runs_forward_sync_and_browser_modes_without_real_network(self):
         fake_python = self.root / "python"
         trace = self.root / "trace.jsonl"
         fake_python.write_text(
@@ -376,23 +373,21 @@ class SyncAccountsTest(unittest.TestCase):
         )
         fake_python.chmod(0o700)
         profile = account_config.parse_config({"accounts": [account_data()]})[0]
-        for direction, script in (("garmin_to_coros", "garmin_sync_coros.py"),
-                                  ("coros_to_garmin", "coros_sync_garmin.py")):
-            for mode in ([], ["--headless-only"], ["--browser-only"]):
-                trace.unlink(missing_ok=True)
-                env = account_config.worker_environment(profile, {"PATH": os.defpath}, self.state_root)
-                env.update(PYTHON_BIN=str(fake_python), SYNC_DIRECTION=direction)
-                result = subprocess.run(["bash", "run_sync.sh", *mode], env=env,
-                                        cwd=account_config.runtime_config.PROJECT_ROOT,
-                                        capture_output=True, text=True, timeout=10)
-                self.assertEqual(result.returncode, 0, result.stderr)
-                calls = [json.loads(line) for line in trace.read_text().splitlines()]
-                self.assertEqual(calls[-1]["script"], script)
-                self.assertEqual(calls[-1]["email"], profile.env["GARMIN_EMAIL"])
-                self.assertEqual(calls[-1]["headless"], "1")
-                if mode == ["--browser-only"]:
-                    self.assertEqual(calls[0]["script"], "generate_garth_token_browser.py")
-                    self.assertEqual(calls[0]["headless"], "0")
+        for mode in ([], ["--headless-only"], ["--browser-only"]):
+            trace.unlink(missing_ok=True)
+            env = account_config.worker_environment(profile, {"PATH": os.defpath}, self.state_root)
+            env.update(PYTHON_BIN=str(fake_python))
+            result = subprocess.run(["bash", "run_sync.sh", *mode], env=env,
+                                    cwd=account_config.runtime_config.PROJECT_ROOT,
+                                    capture_output=True, text=True, timeout=10)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            calls = [json.loads(line) for line in trace.read_text().splitlines()]
+            self.assertEqual(calls[-1]["script"], "garmin_sync_coros.py")
+            self.assertEqual(calls[-1]["email"], profile.env["GARMIN_EMAIL"])
+            self.assertEqual(calls[-1]["headless"], "1")
+            if mode == ["--browser-only"]:
+                self.assertEqual(calls[0]["script"], "generate_garth_token_browser.py")
+                self.assertEqual(calls[0]["headless"], "0")
 
     def test_shell_refreshes_only_after_garmin_authentication_failure(self):
         fake_python = self.root / "python"

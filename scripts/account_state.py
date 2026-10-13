@@ -64,7 +64,7 @@ def unused_database(path: Path, table: str) -> bool:
 
 
 def unused_state(state: Path) -> bool:
-    databases = {"garmin.db": "garmin_activity", "coros.db": "coros_activity"}
+    databases = {"garmin.db": "garmin_activity"}
     sidecars = {name + suffix: name for name in databases for suffix in ("-wal", "-shm", "-journal")}
     try:
         for path in state.iterdir():
@@ -79,7 +79,7 @@ def unused_state(state: Path) -> bool:
             elif path.name in sidecars:
                 if not path.is_file() or not (state / sidecars[path.name]).is_file():
                     return False
-            elif path.name in {"garmin-fit", "coros-fit"}:
+            elif path.name == "garmin-fit":
                 if not path.is_dir() or any(path.iterdir()):
                     return False
             else:
@@ -154,7 +154,7 @@ def migrate_legacy(
     if not same_identity(account, legacy):
         raise ValueError("旧配置与目标账号组不匹配，拒绝迁移。")
     token = source / "garth_token.enc"
-    files = [source / name for name in ("garmin.db", "coros.db", "garth_token.enc")
+    files = [source / name for name in ("garmin.db", "garth_token.enc")
              if (source / name).exists()]
     if not files or any(path.is_symlink() or not path.is_file() for path in files):
         raise ValueError("没有可迁移的旧状态，或旧状态文件不安全。")

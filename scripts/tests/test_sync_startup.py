@@ -16,8 +16,6 @@ import importlib, importlib.abc, json, sys
 class Guard(importlib.abc.MetaPathFinder):
     def find_spec(self, fullname, path=None, target=None):
         optional = {"oss2", "boto3"}
-        if sys.argv[1].startswith("scripts.coros."):
-            optional.add("garth")
         if fullname.split(".")[0] in optional or fullname.endswith("generate_garth_token_browser"):
             raise RuntimeError("Optional dependency loaded before it is needed: " + fullname)
 sys.meta_path.insert(0, Guard())
@@ -25,7 +23,7 @@ importlib.import_module(sys.argv[1])
 print(json.dumps({"ready": True}))
 '''
         env = {**os.environ, "GARTH_TELEMETRY_ENABLED": "false", "GARTH_TELEMETRY_SEND_TO_LOGFIRE": "false"}
-        for module in ("scripts.garmin.garmin_sync_coros", "scripts.coros.coros_sync_garmin"):
+        for module in ("scripts.garmin.garmin_sync_coros",):
             with self.subTest(module=module):
                 result = subprocess.run([sys.executable, "-c", code, module], cwd=PROJECT_ROOT, env=env,
                                         capture_output=True, text=True, timeout=30)

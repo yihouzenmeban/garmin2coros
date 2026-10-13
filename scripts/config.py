@@ -11,7 +11,6 @@ if ACCOUNT_ID and not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,63}", ACCOUNT_ID
     raise ValueError("Invalid sync account ID.")
 ACCOUNT_DIR = Path(os.environ.get("SYNC_STATE_ROOT") or PROJECT_ROOT / "db" / "accounts") / ACCOUNT_ID
 GARMIN_FIT_DIR = str(ACCOUNT_DIR / "garmin-fit" if ACCOUNT_ID else PROJECT_ROOT / "garmin-fit")
-COROS_FIT_DIR = str(ACCOUNT_DIR / "coros-fit" if ACCOUNT_ID else PROJECT_ROOT / "coros-fit")
 DB_DIR = str(ACCOUNT_DIR if ACCOUNT_ID else PROJECT_ROOT / "db")
 GARTH_TOKEN_FILE = os.path.join(DB_DIR, "garth_token.enc")
 
@@ -48,16 +47,14 @@ def load_sync_config(
     return {key: values.get(key) or default for key, default in defaults.items()}
 
 
-def dispatch_cli(direction: str | None = None, refresh_token: str | None = None) -> None:
+def dispatch_cli(*, sync: bool = False, refresh_token: str | None = None) -> None:
     if os.environ.get("SYNC_ACCOUNT_WORKER") == "1":
         if not os.environ.get("SYNC_ACCOUNT_ID"):
             raise ValueError("账号子进程缺少 SYNC_ACCOUNT_ID。")
         return
     arguments = []
-    if direction:
-        arguments.extend(["--direction", direction])
-        if not any(mode in sys.argv for mode in ("--headless-only", "--browser-only")):
-            arguments.append("--headless-only")
+    if sync and not any(mode in sys.argv for mode in ("--headless-only", "--browser-only")):
+        arguments.append("--headless-only")
     if refresh_token:
         arguments.extend(["--refresh-token", refresh_token])
     python = PROJECT_ROOT / ".venv" / "bin" / "python"

@@ -10,7 +10,6 @@
     {
       "id": "account_a",
       "enabled": true,
-      "direction": "garmin_to_coros",
       "garmin": {"email": "", "password": "", "token_salt": "", "domain": "COM"},
       "coros": {"email": "", "password": ""},
       "options": {}
@@ -18,7 +17,6 @@
     {
       "id": "account_b",
       "enabled": false,
-      "direction": "garmin_to_coros",
       "garmin": {"email": "", "password": "", "token_salt": "", "domain": "COM"},
       "coros": {"email": "", "password": ""},
       "options": {}

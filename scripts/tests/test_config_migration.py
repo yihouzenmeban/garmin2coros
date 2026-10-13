@@ -1,7 +1,6 @@
 import hashlib
 from contextlib import closing
 import json
-import os
 from pathlib import Path
 import shlex
 import sqlite3
@@ -73,7 +72,7 @@ class ConfigMigrationTest(unittest.TestCase):
         self.assertFalse(self.states.exists())
 
     def test_failed_state_migration_does_not_retire_source_or_keep_partial_config(self):
-        (self.source / "coros.db").write_bytes(b"invalid sqlite")
+        (self.source / "garmin.db").write_bytes(b"invalid sqlite")
         with self.assertRaises(ValueError):
             self.migrate()
         self.assertFalse(self.config_file.exists())

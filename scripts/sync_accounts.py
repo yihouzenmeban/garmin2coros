@@ -15,7 +15,7 @@ from urllib.parse import quote, quote_plus, urlsplit
 
 try:
     from .account_config import (
-        DEFAULT_STATE_ROOT, DIRECTIONS, Account, config_path, initialize_config,
+        DEFAULT_STATE_ROOT, Account, config_path, initialize_config,
         load_accounts, worker_environment,
     )
     from .account_state import lock_state
@@ -24,7 +24,7 @@ try:
     from .utils.sync_progress import PROGRESS_PREFIX
 except ImportError:
     from account_config import (
-        DEFAULT_STATE_ROOT, DIRECTIONS, Account, config_path, initialize_config,
+        DEFAULT_STATE_ROOT, Account, config_path, initialize_config,
         load_accounts, worker_environment,
     )
     from account_state import lock_state
@@ -154,7 +154,7 @@ async def run_accounts(
     async def run_account(account: Account) -> int:
         async with semaphore:
             started = time.monotonic()
-            log(f"[{account.id}] 开始 {account.direction}")
+            log(f"[{account.id}] 开始 Garmin → COROS")
             try:
                 with lock_state(account, DEFAULT_STATE_ROOT):
                     exit_code = await run_worker(account, mode, refresh_token, interactive)
@@ -190,10 +190,9 @@ def positive_jobs(value: str) -> int:
 
 
 def parser() -> argparse.ArgumentParser:
-    result = argparse.ArgumentParser(description="多进程并行同步 Garmin / COROS，独立进程与状态目录。")
+    result = argparse.ArgumentParser(description="多进程并行同步 Garmin → COROS，独立进程与状态目录。")
     result.add_argument("--config", help="多账号 JSON 配置路径，默认 config.local.json")
     result.add_argument("--account", help="仅运行指定的已启用账号组 id")
-    result.add_argument("--direction", choices=DIRECTIONS, help="覆盖所选组的同步方向")
     result.add_argument("--jobs", type=positive_jobs, default=4, help="同时运行的账号组数，默认 4；设为 1 恢复串行")
     result.add_argument("--full-scan", action="store_true", help="完整扫描历史运动，忽略增量边界和 GARMIN_NEWEST_NUM")
     mode = result.add_mutually_exclusive_group()
@@ -228,15 +227,13 @@ def main(argv: list[str] | None = None) -> int:
         accounts = load_accounts(arguments.config)
         if arguments.list:
             for account in accounts:
-                print(f"{account.id}: {'启用' if account.enabled else '停用'}，{account.direction}")
+                print(f"{account.id}: {'启用' if account.enabled else '停用'}，Garmin → COROS")
             return 0
         selected_id = arguments.account
         selected = [account for account in accounts if account.enabled and (not selected_id or account.id == selected_id)]
         if not selected:
             raise ValueError("没有可运行的账号组，或指定组不存在/未启用。")
         mode = "--headless-only" if arguments.headless_only else "--browser-only" if arguments.browser_only else "default"
-        if arguments.direction:
-            selected = [replace(account, direction=arguments.direction) for account in selected]
         selected = [replace(account, env={**account.env, "SYNC_FULL_SCAN": "1" if arguments.full_scan else "0"})
                     for account in selected]
         prepare_runtime(browser_required=False)

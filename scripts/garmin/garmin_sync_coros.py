@@ -15,7 +15,7 @@ sys.path.append(config_path)
 from config import dispatch_cli
 
 if __name__ == "__main__":
-    dispatch_cli(direction="garmin_to_coros")
+    dispatch_cli(sync=True)
 
 from config import DB_DIR, GARMIN_FIT_DIR, load_sync_config
 from garmin.garmin_client import GarminClient
@@ -233,7 +233,6 @@ def main() -> int:
     finally:
         if garmin_client is not None:
             garmin_client.close_downloads()
-            garmin_client.upload_session.close()
         timings.write()
 
 

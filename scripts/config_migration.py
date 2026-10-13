@@ -100,7 +100,7 @@ def migrate_configuration(
         account = legacy
     try:
         source = Path(source_dir)
-        if any((source / name).exists() for name in ("garmin.db", "coros.db", "garth_token.enc")):
+        if any((source / name).exists() for name in ("garmin.db", "garth_token.enc")):
             migrate_legacy(account, legacy, state_root, source)
         else:
             with lock_state(account, state_root):

@@ -5,11 +5,10 @@ from pathlib import Path
 import tempfile
 from types import SimpleNamespace
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 from scripts.garmin import garmin_sync_coros
 from coros.coros_client import CorosActivityUploadError
-from garmin.garmin_client import GarminClient
 from oss.ali_oss_client import AliOssClient
 from oss.aws_oss_client import AwsOssClient
 
@@ -153,39 +152,6 @@ class AwsActivityUploadTest(unittest.TestCase):
         self.assertEqual(transfer.max_concurrency, 1)
 
 
-class GarminActivityUploadTest(unittest.TestCase):
-    def test_garmin_upload_reuses_session_and_sets_timeout(self):
-        client = GarminClient.__new__(GarminClient)
-        client.ensure_login = Mock()
-        client.garthClient = Mock()
-        client.garthClient.client.domain = "garmin.com"
-        client.headers = {}
-        client.upload_session = Mock()
-        client.upload_session.post.return_value = Mock(status_code=202)
-        client.upload_session.post.return_value.json.return_value = {"detailedImportResult": {"uploadId": 11}}
-        with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory) / "test.fit"
-            path.write_bytes(b"synthetic-fit")
-            self.assertEqual(client.upload_activity(str(path)), "SUCCESS")
-            self.assertEqual(client.upload_activity(str(path)), "SUCCESS")
-        self.assertEqual(client.upload_session.post.call_count, 2)
-        self.assertEqual(client.upload_session.post.call_args.kwargs["timeout"], (10, 30))
-
-    def test_failed_request_returns_retryable_status_without_printing_private_error(self):
-        client = GarminClient.__new__(GarminClient)
-        client.ensure_login = Mock()
-        client.garthClient = Mock()
-        client.garthClient.client.domain = "garmin.com"
-        client.headers = {}
-        client.upload_session = Mock()
-        client.upload_session.post.side_effect = ValueError("synthetic-private-password")
-        output = io.StringIO()
-        with tempfile.TemporaryDirectory() as directory, \
-             redirect_stdout(output):
-            path = Path(directory) / "test.fit"
-            path.write_bytes(b"synthetic-fit")
-            self.assertEqual(client.upload_activity(str(path)), "UPLOAD_EXCEPTION")
-        self.assertEqual(output.getvalue(), "")
 
 
 if __name__ == "__main__":

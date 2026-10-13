@@ -1,6 +1,6 @@
-# Garmin / COROS 本地同步
+# Garmin → COROS 本地同步
 
-在 Garmin 和 COROS 之间同步运动，支持双向同步、多账号隔离、并发处理和失败重试。
+将 Garmin 运动同步到 COROS，支持多账号隔离、并发处理和失败重试。
 在 macOS 或 Linux 上通过 `run_sync.sh` 运行。
 
 ## 安装与配置
@@ -15,7 +15,6 @@ python3 -m venv .venv
 
 - `garmin`：`email`、`password`、`token_salt`、`domain`（`COM` 或 `CN`）。
 - `coros`：`email`、`password`。
-- `direction`：`garmin_to_coros` 或 `coros_to_garmin`。
 - `id`：稳定的账号组标识；单账号也使用一个组。
 
 只启用需要同步的组。真实凭据只保存在已忽略的 `config.local.json`，
@@ -27,7 +26,6 @@ python3 -m venv .venv
 ./run_sync.sh
 ./run_sync.sh --list
 ./run_sync.sh --account account_a
-./run_sync.sh --direction coros_to_garmin
 ./run_sync.sh --headless-only --jobs 2
 ./run_sync.sh --headless-only --full-scan
 ```

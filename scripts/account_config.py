@@ -14,7 +14,6 @@ except ImportError:
 DEFAULT_CONFIG_FILE = runtime_config.PROJECT_ROOT / "config.local.json"
 EXAMPLE_CONFIG_FILE = runtime_config.PROJECT_ROOT / "config.example.json"
 DEFAULT_STATE_ROOT = runtime_config.PROJECT_ROOT / "db" / "accounts"
-DIRECTIONS = ("garmin_to_coros", "coros_to_garmin")
 CREDENTIAL_KEYS = {
     "GARMIN_EMAIL", "GARMIN_PASSWORD", "GARMIN_TOKEN_SALT", "COROS_EMAIL", "COROS_PASSWORD",
 }
@@ -32,7 +31,6 @@ DEFAULT_OPTIONS = {
 class Account:
     id: str
     enabled: bool
-    direction: str
     env: dict[str, str] = field(repr=False)
 
 
@@ -89,9 +87,9 @@ def parse_config(data: object) -> list[Account]:
         enabled = group.get("enabled", True)
         if type(enabled) is not bool:
             raise ValueError(f"{account_id}: enabled 必须是布尔值。")
-        direction = group.get("direction", DIRECTIONS[0])
-        if direction not in DIRECTIONS:
-            raise ValueError(f"{account_id}: direction 不支持。")
+        # Accept the fixed direction field from existing local configurations.
+        if group.get("direction", "garmin_to_coros") != "garmin_to_coros":
+            raise ValueError(f"{account_id}: 仅支持 Garmin → COROS；请确认账号配置中的 direction。")
         garmin = check_fields(group.get("garmin"), {"email", "password", "token_salt", "domain"}, "garmin")
         coros = check_fields(group.get("coros"), {"email", "password"}, "coros")
         domain = garmin.get("domain", "COM")
@@ -105,7 +103,7 @@ def parse_config(data: object) -> list[Account]:
                 if not isinstance(value, str) or (enabled and not value.strip()):
                     raise ValueError(f"{account_id}: {provider}_{name.upper()} 必须填写字符串。")
                 values[f"{provider}_{name.upper()}"] = value
-        result.append(Account(account_id, enabled, direction, values))
+        result.append(Account(account_id, enabled, values))
     return result
 
 
@@ -132,7 +130,7 @@ def worker_environment(
     source = os.environ if env is None else env
     private_keys = CREDENTIAL_KEYS | OPTION_KEYS | {
         "GARMIN_AUTH_DOMAIN", "GARMIN_ENV_FILE", "SYNC_ACCOUNTS_JSON", "SYNC_ACCOUNTS_FILE",
-        "SYNC_ACCOUNT_WORKER", "SYNC_ACCOUNT_ID", "SYNC_STATE_ROOT", "SYNC_DIRECTION", "SYNC_PROGRESS_TTY", "SYNC_FULL_SCAN",
+        "SYNC_ACCOUNT_WORKER", "SYNC_ACCOUNT_ID", "SYNC_STATE_ROOT", "SYNC_PROGRESS_TTY", "SYNC_FULL_SCAN",
     }
     proxies = {key: source[key] for key in runtime_config.RUNTIME_ENV_KEYS
                if key.lower().endswith("proxy") and key in source}
@@ -140,7 +138,7 @@ def worker_environment(
               if key not in private_keys and key.upper() not in {"GARTH_TOKEN", "GARTH_HOME"}}
     values.update(proxies)
     values.update(account.env)
-    values.update(SYNC_ACCOUNT_WORKER="1", SYNC_DIRECTION=account.direction)
+    values.update(SYNC_ACCOUNT_WORKER="1")
     values.update(SYNC_ACCOUNT_ID=account.id, SYNC_STATE_ROOT=str(Path(state_root).resolve()))
     return values
 

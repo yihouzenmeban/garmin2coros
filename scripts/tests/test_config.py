@@ -1,9 +1,6 @@
-from contextlib import redirect_stdout
-import io
 import os
 from pathlib import Path
 import sys
-import tempfile
 import unittest
 from unittest.mock import patch
 
@@ -66,10 +63,10 @@ class RuntimeConfigTest(unittest.TestCase):
              patch.object(sys, "argv", ["sync.py", "--account", "account_b"]), \
              patch.object(os, "execv", side_effect=SystemExit(0)) as execute:
             with self.assertRaises(SystemExit):
-                config.dispatch_cli(direction="coros_to_garmin")
+                config.dispatch_cli(sync=True)
         arguments = execute.call_args.args[1]
         self.assertEqual(Path(arguments[1]).name, "sync_accounts.py")
-        self.assertIn("coros_to_garmin", arguments)
+        self.assertIn("--headless-only", arguments)
         self.assertEqual(arguments[-2:], ["--account", "account_b"])
 
     def test_token_cli_dispatch_selects_token_operation_and_worker_does_not_recurse(self):

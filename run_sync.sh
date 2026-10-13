@@ -60,9 +60,6 @@ validate_env() {
 
 run_headless_sync() {
   local sync_script="$ROOT_DIR/scripts/garmin/garmin_sync_coros.py"
-  if [[ "${SYNC_DIRECTION:-garmin_to_coros}" == "coros_to_garmin" ]]; then
-    sync_script="$ROOT_DIR/scripts/coros/coros_sync_garmin.py"
-  fi
   log "开始无头同步"
   GARMIN_BROWSER_HEADLESS=1 \
   GARMIN_BROWSER_CI_MODE=1 \

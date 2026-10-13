@@ -77,15 +77,19 @@ class AccountConfigTest(unittest.TestCase):
 
     def test_defaults_and_group_options_are_merged_without_credentials_in_repr(self):
         data = account_data()
-        data["direction"] = "coros_to_garmin"
         data["options"] = {"GARMIN_NEWEST_NUM": 8}
         accounts = account_config.parse_config({
             "defaults": {"GARMIN_NEWEST_NUM": 5}, "accounts": [data],
         })
-        self.assertEqual(accounts[0].direction, "coros_to_garmin")
         self.assertEqual(accounts[0].env["GARMIN_NEWEST_NUM"], "8")
         self.assertNotIn(data["garmin"]["password"], repr(accounts[0]))
         self.assertNotIn(data["garmin"]["email"], repr(accounts[0]))
+
+    def test_existing_forward_configuration_matches_direction_free_configuration(self):
+        data = account_data()
+        expected = account_config.parse_config({"accounts": [data]})
+        data["direction"] = "garmin_to_coros"
+        self.assertEqual(account_config.parse_config({"accounts": [data]}), expected)
 
     def test_disabled_blank_group_is_valid_but_not_enabled(self):
         data = account_data()
@@ -167,7 +171,7 @@ class AccountConfigTest(unittest.TestCase):
                     sys.executable, "-c",
                     "from scripts import config; import json; "
                     "print(json.dumps([config.DB_DIR, config.GARTH_TOKEN_FILE, "
-                    "config.GARMIN_FIT_DIR, config.COROS_FIT_DIR]))",
+                    "config.GARMIN_FIT_DIR]))",
                 ], env=env, text=True)
                 paths = [Path(value) for value in json.loads(output)]
                 self.assertEqual(paths[0], Path(directory) / account_id)
